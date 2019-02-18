@@ -1,0 +1,81 @@
+Considering You have following system configuration :
+Ubuntu 16.04
+ROS Kinetic
+Mavros Verison = 0.26.3 (You can check yours by running this command 'rosversion mavros')
+
+Error occurs while compiling it :
+
+####
+Scanning dependencies of target ros_erle_teleoperation
+[  4%] Building CXX object ros_erle_teleoperation/CMakeFiles/ros_erle_teleoperation.dir/src/ROS/thread_ros.cpp.o
+In file included from /opt/ros/kinetic/include/ros/ros.h:40:0,
+                 from /home/kashif/erle_sim/src/ros_erle_teleoperation/src/ROS/thread_ros.h:8,
+                 from /home/kashif/erle_sim/src/ros_erle_teleoperation/src/ROS/thread_ros.cpp:1:
+/home/kashif/erle_sim/src/ros_erle_teleoperation/src/ROS/thread_ros.cpp: In member function ‘void Thread_ROS::updateMode()’:
+/home/kashif/erle_sim/src/ros_erle_teleoperation/src/ROS/thread_ros.cpp:76:56: error: ‘mavros_msgs::SetMode::Response {aka struct mavros_msgs::SetModeResponse_<std::
+allocator<void> >}’ has no member named ‘success’
+             ROS_INFO("Send OK %d Value:", srv.response.success);
+                                                        ^
+/opt/ros/kinetic/include/ros/console.h:346:165: note: in definition of macro ‘ROSCONSOLE_PRINT_AT_LOCATION_WITH_FILTER’
+ console::print(filter, __rosconsole_define_location__loc.logger_, __rosconsole_define_location__loc.level_, __FILE__, __LINE__, __ROSCONSOLE_FUNCTION__, __VA_ARGS__
+                                                                                                                                                          ^
+/opt/ros/kinetic/include/ros/console.h:379:7: note: in expansion of macro ‘ROSCONSOLE_PRINT_AT_LOCATION’
+       ROSCONSOLE_PRINT_AT_LOCATION(__VA_ARGS__); \
+       ^
+/opt/ros/kinetic/include/ros/console.h:561:35: note: in expansion of macro ‘ROS_LOG_COND’
+ #define ROS_LOG(level, name, ...) ROS_LOG_COND(true, level, name, __VA_ARGS__)
+                                   ^
+/opt/ros/kinetic/include/rosconsole/macros_generated.h:110:23: note: in expansion of macro ‘ROS_LOG’
+ #define ROS_INFO(...) ROS_LOG(::ros::console::levels::Info, ROSCONSOLE_DEFAULT_NAME, __VA_ARGS__)
+                       ^
+/home/kashif/erle_sim/src/ros_erle_teleoperation/src/ROS/thread_ros.cpp:76:13: note: in expansion of macro ‘ROS_INFO’
+             ROS_INFO("Send OK %d Value:", srv.response.success);
+             ^
+ros_erle_teleoperation/CMakeFiles/ros_erle_teleoperation.dir/build.make:145: recipe for target 'ros_erle_teleoperation/CMakeFiles/ros_erle_teleoperation.dir/src/ROS/
+thread_ros.cpp.o' failed
+make[2]: *** [ros_erle_teleoperation/CMakeFiles/ros_erle_teleoperation.dir/src/ROS/thread_ros.cpp.o] Error 1
+CMakeFiles/Makefile2:1405: recipe for target 'ros_erle_teleoperation/CMakeFiles/ros_erle_teleoperation.dir/all' failed
+make[1]: *** [ros_erle_teleoperation/CMakeFiles/ros_erle_teleoperation.dir/all] Error 2
+Makefile:138: recipe for target 'all' failed
+make: *** [all] Error 2
+Invoking "make -j4 -l4" failed
+
+####
+
+Understanding this Error:
+
+1.Error is in 'void Thread_ROS::updateMode()' function of 'thread_ros.cpp'. It's basically saying that your 'mavros_msgs/SetMode'
+ Service file do not has a Response variable named 'success' when it's used here:
+  ROS_INFO("Send OK %d Value:", srv.response.success); #you can find this line here --> thread_ros.cpp:76:13
+Solution is very :
+
+1. Check what is Response variable of 'mavros_msgs/SetMode' by running this command
+     $ rossrv show mavros_msgs/SetMode
+     Outout will be :
+      uint8 MAV_MODE_PREFLIGHT=0
+      uint8 MAV_MODE_STABILIZE_DISARMED=80
+      uint8 MAV_MODE_STABILIZE_ARMED=208
+      uint8 MAV_MODE_MANUAL_DISARMED=64
+      uint8 MAV_MODE_MANUAL_ARMED=192
+      uint8 MAV_MODE_GUIDED_DISARMED=88
+      uint8 MAV_MODE_GUIDED_ARMED=216
+      uint8 MAV_MODE_AUTO_DISARMED=92
+      uint8 MAV_MODE_AUTO_ARMED=220
+      uint8 MAV_MODE_TEST_DISARMED=66
+      uint8 MAV_MODE_TEST_ARMED=194
+      uint8 base_mode
+      string custom_mode
+      ---
+      bool mode_sent
+
+  As we can see Response variable name is 'mode_sent' not 'success'. 
+  
+  So, solution is simply change follwing line of code:
+    ROS_INFO("Send OK %d Value:", srv.response.success); #you can find this line here --> thread_ros.cpp:76:13        
+  
+  To this line of Code:
+    ROS_INFO("Send OK %d Value:", srv.response.mode_sent); #you can find this line here --> thread_ros.cpp:76:13
+    
+You can see I have simply changed ' srv.response.success' to 'srv.response.mode_sent'
+
+Thanks!!
